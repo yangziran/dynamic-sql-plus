@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cn.kunter</groupId>
+        <artifactId>dynamic-sql-plus-parent</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>dynamic-sql-plus-spring-boot-starter</artifactId>
+    <description>MyBatis Dynamic SQL Plus 启动器</description>
+
+    <dependencies>
+        <!-- 核心注解模块，供开发者使用 -->
+        <dependency>
+            <groupId>cn.kunter</groupId>
+            <artifactId>dynamic-sql-plus-annotations</artifactId>
+        </dependency>
+
+        <!-- 注解处理器，optional 范围避免污染运行时依赖，但会在编译期被发现 -->
+        <dependency>
+            <groupId>cn.kunter</groupId>
+            <artifactId>dynamic-sql-plus-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!-- MyBatis Dynamic SQL -->
+        <dependency>
+            <groupId>org.mybatis.dynamic-sql</groupId>
+            <artifactId>mybatis-dynamic-sql</artifactId>
+        </dependency>
+        
+        <!-- 标准 MyBatis -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
