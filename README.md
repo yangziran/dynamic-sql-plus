@@ -15,14 +15,14 @@ MyBatis 官方推荐的现代化数据访问工具是 [MyBatis Dynamic SQL](http
 - 🚀 **零运行期损耗**：全部通过编译期 AST 语法树解析和源码生成实现，没有运行期反射开销。
 - 🛡️ **完全原生兼容**：生成的代码 100% 遵循原生的 MyBatis Dynamic SQL 规范。
 - ⚡ **极大提升效能**：告别繁琐的复制粘贴，专注核心业务逻辑。
-- 🌍 **全环境适配**：得益于纯正的 Java 8 编译期技术栈与非强依赖设计，本框架可以**在 JDK 8、JDK 11（老牌 Spring Boot 2 环境）甚至最新的 JDK 25/26（主流的 Spring Boot 4 环境）中无缝跨版本运行**。开发者无需像使用其他某些 ORM 增强框架一样为不同版本的 Spring Boot 引入不同版本的 Starter，只需一个依赖即可通吃过去与未来的所有主流环境。
+- 🌍 **双版本并行**：本项目采用双分支策略，**2.x（main 分支）** 基于 Java 17 与 MyBatis Dynamic SQL 2.0+ 打造现代化体验；**1.x 分支** 继续支持 Java 8 与 MyBatis Dynamic SQL 1.5.x，为传统企业提供长期兜底。
 
-> ⚠️ **【重要】版本演进与分支计划说明**
+> ⚠️ **【重要】版本与环境要求**
 > 
-> 由于 MyBatis Dynamic SQL 官方自 2.0.0 起全面拥抱 Java 17 并带来了大量的架构改进，为了平衡新特性的跟进与旧有企业环境的支持，本项目将采用**双分支策略**：
+> 当前 `main` 分支为 **2.x 版本**，最低要求 **Java 17**，底层依赖 MyBatis Dynamic SQL 2.0+。
 > 
-> *   **1.x 版本 (当前状态及后续的 `1.x` 分支)**：作为支持 **Java 8** 与 MyBatis Dynamic SQL 1.5.x 的长期维护版本。主要为无法升级 JDK 的传统企业提供兜底兼容，后续将以 Bug 修复为主。
-> *   **2.x 版本 (未来的 `main` 主干)**：将强制要求 **Java 17** 及以上，全面适配 MyBatis Dynamic SQL 2.0+ 的现代化 API，并享受最新特性的红利。
+> *   如果你的项目仍运行在 **Java 8** 环境，请切换到 [`1.x` 分支](../../tree/1.x) 使用对应版本。
+> *   **2.x 版本** 全面适配了 MyBatis Dynamic SQL 2.0+ 的现代化 API（如 `isEqualTo` 替代已废弃的 `equalTo`），并享受最新特性的红利。
 
 ---
 
@@ -49,7 +49,7 @@ MyBatis 官方推荐的现代化数据访问工具是 [MyBatis Dynamic SQL](http
 <dependency>
     <groupId>cn.kunter</groupId>
     <artifactId>dynamic-sql-plus-spring-boot-starter</artifactId>
-    <version>v1.0.0</version> <!-- 替换为 GitHub 上的最新 Release Tag -->
+    <version>v2.0.0</version> <!-- 替换为 GitHub 上的最新 Release Tag -->
 </dependency>
 ```
 

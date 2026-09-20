@@ -6,7 +6,7 @@
     <parent>
         <groupId>cn.kunter</groupId>
         <artifactId>dynamic-sql-plus-parent</artifactId>
-        <version>1.0.0-SNAPSHOT</version>
+        <version>2.0.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>dynamic-sql-plus-spring-boot-starter</artifactId>

@@ -1,18 +1,12 @@
 package cn.kunter.dynamic.processor.generator;
 
 import cn.kunter.dynamic.processor.exception.DynamicSqlPlusException;
-import com.squareup.javapoet.AnnotationSpec;
-import com.squareup.javapoet.ClassName;
-import com.squareup.javapoet.JavaFile;
-import com.squareup.javapoet.ParameterizedTypeName;
-import com.squareup.javapoet.TypeSpec;
+import com.squareup.javapoet.*;
 
 import javax.annotation.processing.Filer;
 import javax.lang.model.element.Element;
-import javax.lang.model.element.ElementKind;
 import javax.lang.model.element.Modifier;
 import javax.lang.model.element.TypeElement;
-import javax.lang.model.type.TypeMirror;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,13 +40,7 @@ public class MapperClassGenerator {
         
         String entityClassName = typeElement.getSimpleName().toString();
         
-        String mapperPrefix = entityClassName;
-        if (mapperPrefix.endsWith("Eo") && mapperPrefix.length() > 2) {
-            mapperPrefix = mapperPrefix.substring(0, mapperPrefix.length() - 2);
-        } else if (mapperPrefix.endsWith("Entity") && mapperPrefix.length() > 6) {
-            mapperPrefix = mapperPrefix.substring(0, mapperPrefix.length() - 6);
-        }
-        
+        String mapperPrefix = cn.kunter.dynamic.processor.utils.StringUtils.getEntityPrefix(entityClassName);
         String mapperClassName = mapperPrefix + "Mapper";
 
         ClassName mapperAnnotation = ClassName.get("org.apache.ibatis.annotations", "Mapper");
@@ -70,8 +58,8 @@ public class MapperClassGenerator {
         String pkColumnName = null;
         List<Element> allFields = new ArrayList<>();
 
-        for (Element e : typeElement.getEnclosedElements()) {
-            if (e.getKind() == ElementKind.FIELD && !e.getModifiers().contains(Modifier.STATIC)) {
+        for (Element e : cn.kunter.dynamic.processor.utils.ElementUtils.getAllFields(typeElement)) {
+            if (!e.getModifiers().contains(Modifier.STATIC)) {
                 cn.kunter.dynamic.annotations.TableColumn tableColumn = e.getAnnotation(cn.kunter.dynamic.annotations.TableColumn.class);
                 if (tableColumn != null && tableColumn.ignore()) {
                     continue;
@@ -95,44 +83,62 @@ public class MapperClassGenerator {
                 .addSuperinterface(ParameterizedTypeName.get(commonInsert, entityClass))
                 .addJavadoc("自动生成的 MyBatis Mapper 接口。\n@see $T\n", entityClass);
 
+        String tableFieldName = cn.kunter.dynamic.processor.utils.StringUtils.lowerFirst(mapperPrefix);
+        ClassName supportClass = ClassName.get(packageName, entityClassName + "DynamicSqlSupport");
+        ClassName sqlBuilderClass = ClassName.get("org.mybatis.dynamic.sql", "SqlBuilder");
+        ClassName renderingStrategies = ClassName.get("org.mybatis.dynamic.sql.render", "RenderingStrategies");
+
+        // Build @Results for selectMany
+        ClassName resultsAnnotation = ClassName.get("org.apache.ibatis.annotations", "Results");
+        ClassName resultAnnotation = ClassName.get("org.apache.ibatis.annotations", "Result");
+        AnnotationSpec.Builder resultsBuilder = AnnotationSpec.builder(resultsAnnotation)
+                .addMember("id", "$S", entityClassName + "Result");
+        for (Element field : allFields) {
+            String property = field.getSimpleName().toString();
+            String column = cn.kunter.dynamic.processor.utils.StringUtils.camelToSnake(property);
+            cn.kunter.dynamic.annotations.TableColumn tableColumn = field.getAnnotation(cn.kunter.dynamic.annotations.TableColumn.class);
+            if (tableColumn != null && !tableColumn.value().isEmpty()) {
+                column = tableColumn.value();
+            }
+            cn.kunter.dynamic.annotations.TableId tableId = field.getAnnotation(cn.kunter.dynamic.annotations.TableId.class);
+            if (tableId != null && !tableId.value().isEmpty()) {
+                column = tableId.value();
+            }
+            resultsBuilder.addMember("value", "$L", AnnotationSpec.builder(resultAnnotation)
+                    .addMember("column", "$S", column)
+                    .addMember("property", "$S", property)
+                    .build());
+        }
+
+        ClassName selectProvider = ClassName.get("org.apache.ibatis.annotations", "SelectProvider");
+        ClassName sqlProviderAdapter = ClassName.get("org.mybatis.dynamic.sql.util", "SqlProviderAdapter");
+        ClassName selectStatementProvider = ClassName.get("org.mybatis.dynamic.sql.select.render", "SelectStatementProvider");
+        ClassName resultMapAnnotation = ClassName.get("org.apache.ibatis.annotations", "ResultMap");
+
+        com.squareup.javapoet.MethodSpec typedSelectMany = com.squareup.javapoet.MethodSpec.methodBuilder("selectMany")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(ParameterizedTypeName.get(ClassName.get("java.util", "List"), entityClass))
+                .addAnnotation(AnnotationSpec.builder(selectProvider).addMember("type", "$T.class", sqlProviderAdapter).addMember("method", "$S", "select").build())
+                .addAnnotation(resultsBuilder.build())
+                .addParameter(selectStatementProvider, "selectStatement")
+                .build();
+        mapperInterfaceBuilder.addMethod(typedSelectMany);
+
+        com.squareup.javapoet.MethodSpec typedSelectOne = com.squareup.javapoet.MethodSpec.methodBuilder("selectOne")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(ParameterizedTypeName.get(ClassName.get("java.util", "Optional"), entityClass))
+                .addAnnotation(AnnotationSpec.builder(selectProvider).addMember("type", "$T.class", sqlProviderAdapter).addMember("method", "$S", "select").build())
+                .addAnnotation(AnnotationSpec.builder(resultMapAnnotation).addMember("value", "$S", entityClassName + "Result").build())
+                .addParameter(selectStatementProvider, "selectStatement")
+                .build();
+        mapperInterfaceBuilder.addMethod(typedSelectOne);
+
         if (pkElement != null) {
             String pkName = pkElement.getSimpleName().toString();
             com.squareup.javapoet.TypeName pkType = com.squareup.javapoet.TypeName.get(pkElement.asType());
             if (pkType.isPrimitive()) {
                 pkType = pkType.box();
             }
-            ClassName supportClass = ClassName.get(packageName, entityClassName + "DynamicSqlSupport");
-            ClassName sqlBuilderClass = ClassName.get("org.mybatis.dynamic.sql", "SqlBuilder");
-
-            String tableFieldName = entityClassName.toLowerCase();
-            if (tableFieldName.endsWith("eo") && tableFieldName.length() > 2) {
-                tableFieldName = tableFieldName.substring(0, tableFieldName.length() - 2);
-            } else if (tableFieldName.endsWith("entity") && tableFieldName.length() > 6) {
-                tableFieldName = tableFieldName.substring(0, tableFieldName.length() - 6);
-            }
-
-            // selectOne specific for this entity
-            ClassName selectProvider = ClassName.get("org.apache.ibatis.annotations", "SelectProvider");
-            ClassName sqlProviderAdapter = ClassName.get("org.mybatis.dynamic.sql.util", "SqlProviderAdapter");
-            ClassName selectStatementProvider = ClassName.get("org.mybatis.dynamic.sql.select.render", "SelectStatementProvider");
-
-            com.squareup.javapoet.MethodSpec typedSelectOne = com.squareup.javapoet.MethodSpec.methodBuilder("selectOne")
-                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                    .returns(ParameterizedTypeName.get(ClassName.get("java.util", "Optional"), entityClass))
-                    .addAnnotation(AnnotationSpec.builder(selectProvider).addMember("type", "$T.class", sqlProviderAdapter).addMember("method", "$S", "select").build())
-                    .addParameter(selectStatementProvider, "selectStatement")
-                    .build();
-            mapperInterfaceBuilder.addMethod(typedSelectOne);
-
-            com.squareup.javapoet.MethodSpec typedSelectMany = com.squareup.javapoet.MethodSpec.methodBuilder("selectMany")
-                    .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
-                    .returns(ParameterizedTypeName.get(ClassName.get("java.util", "List"), entityClass))
-                    .addAnnotation(AnnotationSpec.builder(selectProvider).addMember("type", "$T.class", sqlProviderAdapter).addMember("method", "$S", "select").build())
-                    .addParameter(selectStatementProvider, "selectStatement")
-                    .build();
-            mapperInterfaceBuilder.addMethod(typedSelectMany);
-
-            ClassName renderingStrategies = ClassName.get("org.mybatis.dynamic.sql.render", "RenderingStrategies");
 
             // selectByPrimaryKey
             com.squareup.javapoet.MethodSpec selectByPk = com.squareup.javapoet.MethodSpec.methodBuilder("selectByPrimaryKey")
@@ -169,14 +175,29 @@ public class MapperClassGenerator {
                 if (fieldName.equals(pkName)) {
                     continue; // Skip updating primary key
                 }
-                String getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
-                // Handle boolean isXxx
+                String getter;
                 if (field.asType().toString().equals("boolean")) {
-                    getter = "is" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+                    if (fieldName.startsWith("is") && fieldName.length() > 2 && Character.isUpperCase(fieldName.charAt(2))) {
+                        getter = fieldName;
+                    } else {
+                        getter = "is" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
+                    }
+                } else {
+                    getter = "get" + fieldName.substring(0, 1).toUpperCase() + fieldName.substring(1);
                 }
                 updateByPkBuilder.addCode("    .set($T.$L).equalTo(row::$L)\n", supportClass, fieldName, getter);
             }
-            updateByPkBuilder.addCode("    .where($T.$L, $T.isEqualTo(row.get$L()))\n", supportClass, pkName, sqlBuilderClass, pkName.substring(0, 1).toUpperCase() + pkName.substring(1));
+            String pkGetter;
+            if (pkElement.asType().toString().equals("boolean")) {
+                if (pkName.startsWith("is") && pkName.length() > 2 && Character.isUpperCase(pkName.charAt(2))) {
+                    pkGetter = pkName;
+                } else {
+                    pkGetter = "is" + pkName.substring(0, 1).toUpperCase() + pkName.substring(1);
+                }
+            } else {
+                pkGetter = "get" + pkName.substring(0, 1).toUpperCase() + pkName.substring(1);
+            }
+            updateByPkBuilder.addCode("    .where($T.$L, $T.isEqualTo(row.$L()))\n", supportClass, pkName, sqlBuilderClass, pkGetter);
             updateByPkBuilder.addCode("    .build().render($T.MYBATIS3));\n", renderingStrategies);
             mapperInterfaceBuilder.addMethod(updateByPkBuilder.build());
 
