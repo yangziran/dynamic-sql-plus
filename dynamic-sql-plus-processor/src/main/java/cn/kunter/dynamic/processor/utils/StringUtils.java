@@ -16,17 +16,30 @@ public class StringUtils {
         if (camelCase == null || camelCase.isEmpty()) {
             return camelCase;
         }
-        StringBuilder result = new StringBuilder();
-        result.append(Character.toLowerCase(camelCase.charAt(0)));
-        for (int i = 1; i < camelCase.length(); i++) {
-            char ch = camelCase.charAt(i);
-            if (Character.isUpperCase(ch)) {
-                result.append('_').append(Character.toLowerCase(ch));
-            } else {
-                result.append(ch);
-            }
+        return camelCase.replaceAll("([a-z])([A-Z]+)", "$1_$2")
+                .replaceAll("([A-Z])([A-Z][a-z])", "$1_$2")
+                .toLowerCase();
+    }
+
+    public static String lowerFirst(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
         }
-        return result.toString();
+        return Character.toLowerCase(str.charAt(0)) + str.substring(1);
+    }
+
+    public static String getEntityPrefix(String className) {
+        if (className == null || className.isEmpty()) {
+            return className;
+        }
+        String temp = className;
+        String upper = temp.toUpperCase();
+        if ((upper.endsWith("EO") || upper.endsWith("DO") || upper.endsWith("PO")) && temp.length() > 2) {
+            temp = temp.substring(0, temp.length() - 2);
+        } else if (upper.endsWith("ENTITY") && temp.length() > 6) {
+            temp = temp.substring(0, temp.length() - 6);
+        }
+        return temp;
     }
 
     /**
@@ -37,15 +50,6 @@ public class StringUtils {
      * @return 推断出的表名
      */
     public static String inferTableName(String className) {
-        if (className == null || className.isEmpty()) {
-            return className;
-        }
-        String temp = className;
-        if (temp.endsWith("Eo") && temp.length() > 2) {
-            temp = temp.substring(0, temp.length() - 2);
-        } else if (temp.endsWith("Entity") && temp.length() > 6) {
-            temp = temp.substring(0, temp.length() - 6);
-        }
-        return camelToSnake(temp);
+        return camelToSnake(getEntityPrefix(className));
     }
 }

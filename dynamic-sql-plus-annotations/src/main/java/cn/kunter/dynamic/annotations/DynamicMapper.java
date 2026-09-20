@@ -1,17 +1,13 @@
 package cn.kunter.dynamic.annotations;
 
-import java.lang.annotation.Documented;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import java.lang.annotation.*;
 
 /**
  * 标记在实体类（Entity/Eo）上，用于在编译期自动生成 MyBatis Dynamic SQL 的 Support 类和 Mapper 接口。
  * @author yangziran
  */
 @Documented
-@Retention(RetentionPolicy.SOURCE)
+@Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface DynamicMapper {
 

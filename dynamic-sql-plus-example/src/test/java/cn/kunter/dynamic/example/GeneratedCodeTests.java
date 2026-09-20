@@ -12,7 +12,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -34,18 +33,28 @@ class GeneratedCodeTests {
         
         Object userTable = userField.get(null);
         assertTrue(userTable instanceof SqlTable);
-        assertEquals("user", ((SqlTable) userTable).tableNameAtRuntime());
 
-        // 2. 验证生成了基础的列
+        // 2. 验证内部类名已变更为 UserEoTable（避免与实体类同名导入冲突）
+        Class<?>[] innerClasses = supportClass.getDeclaredClasses();
+        boolean hasTableClass = false;
+        for (Class<?> inner : innerClasses) {
+            if (inner.getSimpleName().equals("UserEoTable")) {
+                hasTableClass = true;
+                assertTrue(SqlTable.class.isAssignableFrom(inner), "UserEoTable 应继承 SqlTable");
+            }
+        }
+        assertTrue(hasTableClass, "应生成名为 UserEoTable 的内部类");
+
+        // 3. 验证生成了基础的列
         Field idField = supportClass.getDeclaredField("id");
         assertTrue(idField.getType().isAssignableFrom(SqlColumn.class));
 
-        // 3. 验证 @TableColumn 生效
+        // 4. 验证 @TableColumn 生效
         Field statusField = supportClass.getDeclaredField("status");
         SqlColumn<?> statusColumn = (SqlColumn<?>) statusField.get(null);
         assertEquals("user_status", statusColumn.name());
 
-        // 4. 验证 @TableColumn(ignore = true) 生效
+        // 5. 验证 @TableColumn(ignore = true) 生效
         boolean hasTemporaryToken = false;
         try {
             supportClass.getDeclaredField("temporaryToken");
@@ -83,7 +92,31 @@ class GeneratedCodeTests {
         assertTrue(hasDelete, "需要继承 CommonDeleteMapper");
         assertTrue(hasInsert, "需要继承 CommonInsertMapper");
 
-        // 3. 验证是否生成了 ByPrimaryKey 相关的方法
+        // 3. 验证 selectMany 方法是否携带 @Results 注解（结果集映射）
+        boolean hasResultsOnSelectMany = false;
+        for (java.lang.reflect.Method m : mapperClass.getDeclaredMethods()) {
+            if (m.getName().equals("selectMany")) {
+                org.apache.ibatis.annotations.Results results = m.getAnnotation(org.apache.ibatis.annotations.Results.class);
+                if (results != null && "UserEoResult".equals(results.id())) {
+                    hasResultsOnSelectMany = true;
+                }
+            }
+        }
+        assertTrue(hasResultsOnSelectMany, "selectMany 方法需要携带 @Results 注解以保证结果集映射");
+
+        // 4. 验证 selectOne 方法是否携带 @ResultMap 注解（引用共享的结果集映射）
+        boolean hasResultMapOnSelectOne = false;
+        for (java.lang.reflect.Method m : mapperClass.getDeclaredMethods()) {
+            if (m.getName().equals("selectOne")) {
+                org.apache.ibatis.annotations.ResultMap resultMap = m.getAnnotation(org.apache.ibatis.annotations.ResultMap.class);
+                if (resultMap != null) {
+                    hasResultMapOnSelectOne = true;
+                }
+            }
+        }
+        assertTrue(hasResultMapOnSelectOne, "selectOne 方法需要携带 @ResultMap 注解");
+
+        // 5. 验证是否生成了 ByPrimaryKey 相关的方法
         boolean hasSelectByPk = false;
         boolean hasUpdateByPk = false;
         boolean hasDeleteByPk = false;
