@@ -10,13 +10,14 @@ import cn.kunter.dynamic.annotations.TableId;
  */
 @DynamicMapper
 public class UserEo {
+
     @TableId(autoIncrement = true)
     private Long id;
     private String username;
-    
+
     @TableColumn(value = "user_status")
     private Integer status;
-    
+
     @TableColumn(ignore = true)
     private String temporaryToken;
 

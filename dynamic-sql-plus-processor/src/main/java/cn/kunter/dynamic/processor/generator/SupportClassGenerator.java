@@ -43,10 +43,10 @@ public class SupportClassGenerator {
             throw new DynamicSqlPlusException("实体类必须定义在包中，不允许使用默认包: " + packageName);
         }
         packageName = packageName.substring(0, lastDotIndex);
-        
+
         String className = typeElement.getSimpleName().toString();
         String supportClassName = className + "DynamicSqlSupport";
-        
+
         DynamicMapper dynamicMapper = typeElement.getAnnotation(DynamicMapper.class);
         String tableName = dynamicMapper.tableName();
         if (tableName.isEmpty()) {
@@ -61,20 +61,16 @@ public class SupportClassGenerator {
         String tableFieldName = StringUtils.lowerFirst(StringUtils.getEntityPrefix(className));
 
         TypeSpec.Builder innerTableBuilder = TypeSpec.classBuilder(tableClassName)
-                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                .superclass(sqlTableClass)
-                .addMethod(MethodSpec.constructorBuilder()
-                        .addModifiers(Modifier.PUBLIC)
-                        .addStatement("super($S)", tableName)
-                        .build());
+                .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL).superclass(sqlTableClass)
+                .addMethod(MethodSpec.constructorBuilder().addModifiers(Modifier.PUBLIC)
+                        .addStatement("super($S)", tableName).build());
 
         TypeSpec.Builder supportClassBuilder = TypeSpec.classBuilder(supportClassName)
                 .addModifiers(Modifier.PUBLIC, Modifier.FINAL)
                 .addJavadoc("自动生成的 MyBatis Dynamic SQL 支持类。\n@see $T\n", ClassName.get(packageName, className))
                 .addField(FieldSpec.builder(ClassName.bestGuess(tableClassName), tableFieldName)
                         .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
-                        .initializer("new $L()", tableClassName)
-                        .build());
+                        .initializer("new $L()", tableClassName).build());
 
         List<Element> fields = new ArrayList<>();
         for (Element e : cn.kunter.dynamic.processor.utils.ElementUtils.getAllFields(typeElement)) {
@@ -91,12 +87,13 @@ public class SupportClassGenerator {
         for (Element field : fields) {
             String fieldName = field.getSimpleName().toString();
             String columnName = StringUtils.camelToSnake(fieldName);
-            
+
             TableColumn tableColumn = field.getAnnotation(TableColumn.class);
             if (tableColumn != null && !tableColumn.value().isEmpty()) {
                 columnName = tableColumn.value();
             }
-            cn.kunter.dynamic.annotations.TableId tableId = field.getAnnotation(cn.kunter.dynamic.annotations.TableId.class);
+            cn.kunter.dynamic.annotations.TableId tableId =
+                    field.getAnnotation(cn.kunter.dynamic.annotations.TableId.class);
             if (tableId != null && !tableId.value().isEmpty()) {
                 columnName = tableId.value();
             }
@@ -112,9 +109,9 @@ public class SupportClassGenerator {
             }
 
             JDBCType jdbcType = inferJdbcType(fieldType);
-            
+
             ParameterizedTypeName sqlColumnType = ParameterizedTypeName.get(sqlColumnClass, typeName);
-            
+
             supportClassBuilder.addField(FieldSpec.builder(sqlColumnType, fieldName)
                     .addModifiers(Modifier.PUBLIC, Modifier.STATIC, Modifier.FINAL)
                     .initializer("$L.column($S, $T.$L)", tableFieldName, columnName, JDBCType.class, jdbcType.name())
@@ -123,9 +120,7 @@ public class SupportClassGenerator {
 
         supportClassBuilder.addType(innerTableBuilder.build());
 
-        JavaFile javaFile = JavaFile.builder(packageName, supportClassBuilder.build())
-                .indent("    ")
-                .build();
+        JavaFile javaFile = JavaFile.builder(packageName, supportClassBuilder.build()).indent("    ").build();
         try {
             javaFile.writeTo(filer);
         } catch (IOException e) {
