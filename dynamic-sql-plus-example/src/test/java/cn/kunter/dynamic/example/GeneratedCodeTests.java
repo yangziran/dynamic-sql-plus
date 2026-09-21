@@ -25,12 +25,12 @@ class GeneratedCodeTests {
     void testSupportClassGeneration() throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
         // 使用反射加载自动生成的类，确保在编译期正确生成
         Class<?> supportClass = Class.forName("cn.kunter.dynamic.example.entity.UserEoDynamicSqlSupport");
-        
+
         // 1. 验证包含了表对象
         Field userField = supportClass.getDeclaredField("user");
         assertTrue(Modifier.isStatic(userField.getModifiers()));
         assertTrue(Modifier.isFinal(userField.getModifiers()));
-        
+
         Object userTable = userField.get(null);
         assertTrue(userTable instanceof SqlTable);
 
@@ -96,7 +96,8 @@ class GeneratedCodeTests {
         boolean hasResultsOnSelectMany = false;
         for (java.lang.reflect.Method m : mapperClass.getDeclaredMethods()) {
             if (m.getName().equals("selectMany")) {
-                org.apache.ibatis.annotations.Results results = m.getAnnotation(org.apache.ibatis.annotations.Results.class);
+                org.apache.ibatis.annotations.Results results =
+                        m.getAnnotation(org.apache.ibatis.annotations.Results.class);
                 if (results != null && "UserEoResult".equals(results.id())) {
                     hasResultsOnSelectMany = true;
                 }
@@ -108,7 +109,8 @@ class GeneratedCodeTests {
         boolean hasResultMapOnSelectOne = false;
         for (java.lang.reflect.Method m : mapperClass.getDeclaredMethods()) {
             if (m.getName().equals("selectOne")) {
-                org.apache.ibatis.annotations.ResultMap resultMap = m.getAnnotation(org.apache.ibatis.annotations.ResultMap.class);
+                org.apache.ibatis.annotations.ResultMap resultMap =
+                        m.getAnnotation(org.apache.ibatis.annotations.ResultMap.class);
                 if (resultMap != null) {
                     hasResultMapOnSelectOne = true;
                 }
@@ -127,7 +129,8 @@ class GeneratedCodeTests {
             if (m.getName().equals("updateByPrimaryKey")) hasUpdateByPk = true;
             if (m.getName().equals("deleteByPrimaryKey")) hasDeleteByPk = true;
             if (m.getName().equals("insert")) {
-                org.apache.ibatis.annotations.Options options = m.getAnnotation(org.apache.ibatis.annotations.Options.class);
+                org.apache.ibatis.annotations.Options options =
+                        m.getAnnotation(org.apache.ibatis.annotations.Options.class);
                 if (options != null && options.useGeneratedKeys() && "row.id".equals(options.keyProperty())) {
                     hasInsertOverride = true;
                 }

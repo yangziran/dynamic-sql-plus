@@ -4,11 +4,7 @@ import cn.kunter.dynamic.annotations.DynamicMapper;
 import cn.kunter.dynamic.processor.generator.MapperClassGenerator;
 import cn.kunter.dynamic.processor.generator.SupportClassGenerator;
 
-import javax.annotation.processing.AbstractProcessor;
-import javax.annotation.processing.Filer;
-import javax.annotation.processing.Messager;
-import javax.annotation.processing.ProcessingEnvironment;
-import javax.annotation.processing.RoundEnvironment;
+import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ElementKind;
@@ -56,7 +52,8 @@ public class DynamicMapperProcessor extends AbstractProcessor {
         Set<? extends Element> elements = roundEnv.getElementsAnnotatedWith(DynamicMapper.class);
         for (Element element : elements) {
             if (element.getKind() != ElementKind.CLASS) {
-                messager.printMessage(Diagnostic.Kind.ERROR, "MyBatis Dynamic SQL Plus: @DynamicMapper 注解只能应用于类上。", element);
+                messager.printMessage(Diagnostic.Kind.ERROR, "MyBatis Dynamic SQL Plus: @DynamicMapper 注解只能应用于类上。",
+                        element);
                 continue;
             }
             TypeElement typeElement = (TypeElement) element;
@@ -68,14 +65,19 @@ public class DynamicMapperProcessor extends AbstractProcessor {
                 // 2. 解析实体，生成 Mapper 接口
                 MapperClassGenerator mapperGenerator = new MapperClassGenerator(typeElement, filer);
                 mapperGenerator.generate();
-                
-                messager.printMessage(Diagnostic.Kind.NOTE, "MyBatis Dynamic SQL Plus: 成功为 [" + typeElement.getSimpleName() + "] 生成动态 SQL 基础类！");
+
+                messager.printMessage(Diagnostic.Kind.NOTE,
+                        "MyBatis Dynamic SQL Plus: 成功为 [" + typeElement.getSimpleName() + "] 生成动态 SQL 基础类！");
             } catch (cn.kunter.dynamic.processor.exception.DynamicSqlPlusException e) {
                 // 捕获预期的业务异常
-                messager.printMessage(Diagnostic.Kind.ERROR, "MyBatis Dynamic SQL Plus: 为 [" + typeElement.getSimpleName() + "] 生成文件失败，原因: " + e.getMessage(), typeElement);
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "MyBatis Dynamic SQL Plus: 为 [" + typeElement.getSimpleName() + "] 生成文件失败，原因: " + e.getMessage(), typeElement);
             } catch (Exception e) {
                 // 捕获未知的系统异常
-                messager.printMessage(Diagnostic.Kind.ERROR, "MyBatis Dynamic SQL Plus: 发生未知系统异常，为 [" + typeElement.getSimpleName() + "] 生成文件失败: " + e.getMessage(), typeElement);
+                java.io.StringWriter sw = new java.io.StringWriter();
+                e.printStackTrace(new java.io.PrintWriter(sw));
+                messager.printMessage(Diagnostic.Kind.ERROR,
+                        "MyBatis Dynamic SQL Plus: 发生未知系统异常，为 [" + typeElement.getSimpleName() + "] 生成文件失败: " + sw.toString(), typeElement);
             }
         }
 

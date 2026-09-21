@@ -6,6 +6,10 @@ package cn.kunter.dynamic.processor.utils;
  */
 public class StringUtils {
 
+    private static final java.util.regex.Pattern CAMEL_PATTERN_1 = java.util.regex.Pattern.compile("([a-z])([A-Z]+)");
+    private static final java.util.regex.Pattern CAMEL_PATTERN_2 = java.util.regex.Pattern.compile("([A-Z])" +
+            "([A-Z][a-z])");
+
     /**
      * 将驼峰命名（CamelCase）字符串转换为下划线命名（snake_case）。
      * 例如: userId -> user_id, createTime -> create_time
@@ -16,9 +20,8 @@ public class StringUtils {
         if (camelCase == null || camelCase.isEmpty()) {
             return camelCase;
         }
-        return camelCase.replaceAll("([a-z])([A-Z]+)", "$1_$2")
-                .replaceAll("([A-Z])([A-Z][a-z])", "$1_$2")
-                .toLowerCase();
+        String step1 = CAMEL_PATTERN_1.matcher(camelCase).replaceAll("$1_$2");
+        return CAMEL_PATTERN_2.matcher(step1).replaceAll("$1_$2").toLowerCase();
     }
 
     public static String lowerFirst(String str) {
